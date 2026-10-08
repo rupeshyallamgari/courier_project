@@ -2,6 +2,8 @@
 
 Database: MySQL 8.0.16+ | Backend: Python Flask | Frontend: HTML + JavaScript
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/rupeshyallamgari/courier_project)
+
 ## Folder structure
 - database/setup.sql            tables, constraints, indexes, triggers, sample data, report views
 - database/practice_queries.sql full script with extra queries and constraint tests (paste step by step)
