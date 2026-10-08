@@ -8,11 +8,13 @@ from mysql.connector import Error
 app = Flask(__name__, static_folder="../frontend")
 app.json.default = str   # lets Decimal / datetime go into JSON
 
-CFG = dict(host=os.getenv("DB_HOST", "localhost"),
-           user=os.getenv("DB_USER", "root"),
-           password=os.getenv("DB_PASSWORD", ""),
-           database=os.getenv("DB_NAME", "courier_db"),
-           port=int(os.getenv("DB_PORT", 3306)))
+CFG = dict(
+    host=os.getenv("DB_HOST") or os.getenv("MYSQLHOST", "localhost"),
+    user=os.getenv("DB_USER") or os.getenv("MYSQLUSER", "root"),
+    password=os.getenv("DB_PASSWORD") or os.getenv("MYSQLPASSWORD", ""),
+    database=os.getenv("DB_NAME") or os.getenv("MYSQLDATABASE", "courier_db"),
+    port=int(os.getenv("DB_PORT") or os.getenv("MYSQLPORT", "3306"))
+)
 
 def query(sql, args=()):
     """Run a SELECT and return rows as dictionaries."""
