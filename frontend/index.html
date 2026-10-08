@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Courier Parcel Booking and Tracking</title>
+<style>
+body{margin:0;font:16px Calibri,Segoe UI,Arial,sans-serif;background:#f5f7fa;color:#12263f}
+h1{margin:0;padding:14px 18px;background:#12263f;color:#fff;font-size:21px;border-bottom:4px solid #f28c28}
+nav{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px}
+nav button{padding:8px 14px;border:1px solid #d5dbe3;border-radius:20px;background:#fff;cursor:pointer}
+nav button.on{background:#f28c28;color:#fff;border-color:#f28c28}
+main{max-width:1000px;margin:0 auto;padding:0 14px 30px}
+.panel{display:none;background:#fff;border:1px solid #d5dbe3;border-radius:10px;padding:14px;overflow-x:auto}
+.panel.on{display:block}
+label{display:block;font-size:14px;margin:8px 0 3px;color:#4a5668}
+input,select{padding:8px;border:1px solid #d5dbe3;border-radius:6px;font-size:15px;min-width:200px}
+.go{margin:12px 8px 0 0;padding:9px 16px;border:0;border-radius:6px;background:#12263f;color:#fff;cursor:pointer;font-size:15px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:10px}
+th{background:#12263f;color:#fff;text-align:left;padding:6px 8px}td{padding:6px 8px;border-bottom:1px solid #e3e8ef}
+#msg{position:sticky;top:0;margin:0 14px 8px;padding:10px;border-radius:6px;display:none;font-weight:bold}
+#msg.ok{display:block;background:#dff3e5;color:#1b7f3b}#msg.bad{display:block;background:#fde3e3;color:#c62828}
+</style></head><body>
+<h1>📦 Courier Parcel Booking and Tracking System</h1>
+<nav id="nav"></nav><div id="msg"></div>
+<main>
+<div class="panel" id="parcels"><b>All parcels</b><br><br><input id="q" placeholder="Search tracking no. or customer" oninput="loadParcels()"><div id="ptab"></div></div>
+
+<div class="panel" id="book"><b>Book a parcel</b>
+<label>Customer</label><select id="b_cust"></select>
+<label>Service</label><select id="b_svc"></select>
+<label>Origin branch</label><select id="b_br"></select>
+<label>Destination city</label><input id="b_city" value="Hyderabad">
+<label>Weight (kg)</label><input id="b_w" type="number" step="0.1" value="2">
+<label>Description</label><input id="b_d" value="Documents"><br>
+<button class="go" onclick="act(book)">Book Parcel</button></div>
+
+<div class="panel" id="track"><b>Track a parcel</b>
+<label>Tracking number</label><select class="trk" id="t_trk"></select><br>
+<button class="go" onclick="act(track)">Track</button><div id="ttab"></div></div>
+
+<div class="panel" id="scan"><b>Add tracking scan / delivery update / failed attempt</b>
+<label>Tracking number</label><select class="trk" id="s_trk"></select>
+<label>Scan type</label><select id="s_type"><option>PICKED_UP</option><option>AT_HUB</option><option>OUT_FOR_DELIVERY</option><option>DELIVERED</option><option>FAILED_ATTEMPT</option></select>
+<label>Location</label><select id="s_loc"></select>
+<label>Reason (for failed attempt)</label><input id="s_reason" placeholder="Customer not available"><br>
+<button class="go" onclick="act(scan)">Add Scan</button></div>
+
+<div class="panel" id="pay"><b>Make a payment</b>
+<label>Tracking number</label><select class="trk" id="p_trk"></select>
+<label>Amount</label><input id="p_amt" type="number" value="10">
+<label>Method</label><select id="p_m"><option>CASH</option><option>UPI</option><option>CARD</option></select><br>
+<button class="go" onclick="act(pay)">Pay</button></div>
+
+<div class="panel" id="agent"><b>Assign delivery agent</b>
+<label>Tracking number</label><select class="trk" id="a_trk"></select>
+<label>Agent</label><select id="a_ag"></select><br>
+<button class="go" onclick="act(assign)">Assign</button></div>
+
+<div class="panel" id="cust"><b>Customers (add / delete)</b>
+<label>Name</label><input id="c_n"><label>Phone</label><input id="c_p"><label>Email</label><input id="c_e"><label>Address</label><input id="c_a"><br>
+<button class="go" onclick="act(addCust)">Add Customer</button><div id="ctab"></div></div>
+
+<div class="panel" id="rep"><b>Reports</b><br><br>
+<select id="r_sel" onchange="act(report)"><option value="location">Current parcel location</option><option value="delayed">Delayed shipments</option><option value="branch">Branch load</option><option value="route">Route performance</option><option value="failed">Failed attempts</option><option value="revenue">Revenue</option></select>
+<div id="rtab"></div></div>
+</main>
+<script>
+const $=i=>document.getElementById(i);
+const TABS={parcels:'Parcels',book:'Book',track:'Track',scan:'Scan / Delivery',pay:'Payment',agent:'Agent',cust:'Customers',rep:'Reports'};
+async function api(u,m='GET',b){const r=await fetch('/api/'+u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error);return j}
+function msg(ok,t){$('msg').className=ok?'ok':'bad';$('msg').textContent=t;}
+async function act(fn){try{await fn();}catch(e){msg(0,'Error: '+e.message)}}
+const opt=(a,v,t)=>a.map(x=>`<option value="${x[v]}">${x[t]}</option>`).join('');
+function table(rows,del){if(!rows.length)return '<p>No records.</p>';const k=Object.keys(rows[0]);
+return '<table><tr>'+k.map(x=>`<th>${x}</th>`).join('')+(del?'<th></th>':'')+'</tr>'+rows.map(r=>'<tr>'+k.map(x=>`<td>${r[x]??''}</td>`).join('')+(del?`<td><button onclick="act(()=>delCust(${r.cust_id}))">Delete</button></td>`:'')+'</tr>').join('')+'</table>';}
+function show(id){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==id));
+document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==id));$('msg').className='';
+if(id=='parcels')act(loadParcels);if(id=='cust')act(loadCust);if(id=='rep')act(report);}
+async function init(){$('nav').innerHTML=Object.entries(TABS).map(([k,v])=>`<button data-t="${k}" onclick="show('${k}')">${v}</button>`).join('');
+const L=await api('lookups');
+$('b_cust').innerHTML=opt(L.customers,'cust_id','cust_name');$('b_svc').innerHTML=opt(L.services,'service_id','service_name');
+$('b_br').innerHTML=opt(L.branches,'branch_id','branch_name');$('a_ag').innerHTML=opt(L.agents,'agent_id','agent_name');
+$('s_loc').innerHTML=L.branches.map(b=>`<option value="B:${b.branch_id}">${b.branch_name}</option>`).join('')+L.hubs.map(h=>`<option value="H:${h.hub_id}">${h.hub_name}</option>`).join('');
+await fillTrk();show('parcels');}
+async function fillTrk(){const p=await api('parcels');document.querySelectorAll('.trk').forEach(s=>{const v=s.value;s.innerHTML=p.map(x=>`<option>${x.tracking_no}</option>`).join('');if(v)s.value=v;});}
+async function loadParcels(){$('ptab').innerHTML=table(await api('parcels?q='+encodeURIComponent($('q').value)));}
+async function book(){const r=await api('book','POST',{cust_id:$('b_cust').value,service_id:$('b_svc').value,branch_id:$('b_br').value,dest_city:$('b_city').value,weight_kg:$('b_w').value,description:$('b_d').value});
+msg(1,`Booked! Tracking number ${r.tracking_no}, total charge Rs. ${r.total_charge}`);fillTrk();}
+async function track(){$('ttab').innerHTML=table(await api('track/'+$('t_trk').value));$('msg').className='';}
+async function scan(){const r=await api('scan','POST',{tracking_no:$('s_trk').value,scan_type:$('s_type').value,location:$('s_loc').value,reason:$('s_reason').value});msg(1,'Scan added (sequence '+r.seq_no+')');}
+async function pay(){await api('pay','POST',{tracking_no:$('p_trk').value,amount:$('p_amt').value,method:$('p_m').value});msg(1,'Payment recorded');}
+async function assign(){await api('assign','POST',{tracking_no:$('a_trk').value,agent_id:$('a_ag').value});msg(1,'Agent assigned');}
+async function loadCust(){$('ctab').innerHTML=table(await api('customers'),true);}
+async function addCust(){await api('customers','POST',{cust_name:$('c_n').value,phone:$('c_p').value,email:$('c_e').value,address:$('c_a').value});msg(1,'Customer added');loadCust();}
+async function delCust(id){await api('customers/'+id,'DELETE');msg(1,'Customer deleted');loadCust();}
+async function report(){$('rtab').innerHTML=table(await api('reports/'+$('r_sel').value));}
+init().catch(e=>msg(0,'Cannot reach database: '+e.message));
+</script></body></html>
